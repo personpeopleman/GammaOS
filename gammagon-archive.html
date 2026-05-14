@@ -303,7 +303,7 @@ body::before { content:''; position:fixed; inset:0; background:repeating-linear-
     </div>
     <div class="form-group"><div class="form-label">Document Title</div><input class="form-input" id="fTitle" placeholder="e.g. A7 Assault Rifle — Technical File" /></div>
     <div class="form-group"><div class="form-label">Description</div><textarea class="form-textarea" id="fDesc" placeholder="Short summary of document contents..."></textarea></div>
-    <div class="form-group"><div class="form-label">GitHub File Path (optional)</div><input class="form-input" id="fGitPath" placeholder="e.g. docs/file.pdf or docs/file.txt" /></div>
+    <div class="form-group"><div class="form-label">Upload File (optional)</div><input type="file" class="form-input" id="fFileUpload" accept=".docx,.pdf,.txt" onchange="handleFileUpload()" /><div class="form-label" style="margin-top:0.5rem">— or enter path manually —</div><input class="form-input" id="fGitPath" placeholder="e.g. docs/file.pdf or docs/file.txt" style="margin-top:0.4rem"/><div id="uploadStatus" style="font-size:0.58rem;color:var(--green);letter-spacing:0.2em;margin-top:0.4rem"></div></div>
     <div class="form-row">
       <div class="form-group"><div class="form-label">Clearance Tag</div>
         <select class="form-select" id="fClearance">
@@ -462,7 +462,52 @@ async function getGitHubFileBlob(path) {
     return data.sha;
   } catch (e) { return null; }
 }
+async function handleFileUpload() {
+  const fileInput = document.getElementById('fFileUpload');
+  const file = fileInput.files[0];
+  if (!file) return;
 
+  const status = document.getElementById('uploadStatus');
+  status.textContent = 'ENCODING...';
+  status.style.color = 'var(--yellow)';
+
+  const reader = new FileReader();
+  reader.onload = async function(e) {
+    const base64 = e.target.result.split(',')[1];
+    const path = `docs/${file.name}`;
+
+    status.textContent = 'UPLOADING...';
+
+    if (GITHUB_TOKEN === "YOUR_GITHUB_TOKEN_HERE") {
+      document.getElementById('fGitPath').value = path;
+      status.textContent = 'TOKEN NOT SET — path filled, upload skipped.';
+      status.style.color = 'var(--red)';
+      return;
+    }
+
+    const sha = await getGitHubFileBlob(path);
+    const response = await fetch(`https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${path}`, {
+      method: 'PUT',
+      headers: { 'Authorization': `token ${GITHUB_TOKEN}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: `Upload file: ${file.name}`,
+        content: base64,
+        branch: GITHUB_BRANCH,
+        ...(sha && { sha })
+      })
+    });
+
+    if (response.ok) {
+      document.getElementById('fGitPath').value = path;
+      status.textContent = `✓ UPLOADED — docs/${file.name}`;
+      status.style.color = 'var(--green)';
+    } else {
+      status.textContent = '✕ UPLOAD FAILED — check token permissions.';
+      status.style.color = 'var(--red)';
+    }
+  };
+  reader.readAsDataURL(file);
+}
 async function pushToGitHub(path, content, message) {
   if (GITHUB_TOKEN === "YOUR_GITHUB_TOKEN_HERE") {
     showToast('Token not configured. Changes saved locally.', true);
