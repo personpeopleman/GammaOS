@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GAMMAGON // CLASSIFIED ARCHIVE</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0e0e0e;
+  --bg2: #121212;
+  --bg3: #171717;
+  --panel: #131313;
+  --border: #202020;
+  --border2: #2a2a2a;
+  --blue: #2a80ff;
+  --blue-dim: #1a5fcc;
+  --blue-bright: #4a9fff;
+  --blue-glow: rgba(42,128,255,0.18);
+  --blue-glow2: rgba(42,128,255,0.07);
+  --text: #c0ccd8;
+  --text-dim: #5a6a7a;
+  --text-muted: #2e3e4e;
+  --red: #cc2222;
+  --red-glow: rgba(200,30,30,0.25);
+  --yellow: #c8a030;
+  --green: #22aa55;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body { background:var(--bg); color:var(--text); font-family:'Share Tech Mono',monospace; min-height:100vh; overflow-x:hidden; }
+body::before { content:''; position:fixed; inset:0; background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.06) 2px,rgba(0,0,0,0.06) 4px); pointer-events:none; z-index:9000; }
+
+/* LOCK SCREEN */
+#lockScreen { position:fixed; inset:0; background:var(--bg); display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:800; transition:opacity 0.6s ease; }
+#lockScreen.hidden { opacity:0; pointer-events:none; }
+.lock-logo { font-family:'Orbitron',sans-serif; font-size:3rem; font-weight:900; color:var(--blue); letter-spacing:0.3em; text-shadow:0 0 40px rgba(42,128,255,0.6),0 0 100px rgba(42,128,255,0.2); animation:logoGlow 3s ease-in-out infinite; margin-bottom:0.3rem; }
+@keyframes logoGlow { 0%,100%{text-shadow:0 0 40px rgba(42,128,255,0.6),0 0 100px rgba(42,128,255,0.2);} 50%{text-shadow:0 0 60px rgba(42,128,255,0.9),0 0 140px rgba(42,128,255,0.35);} }
+.lock-sub { font-size:0.58rem; color:var(--text-dim); letter-spacing:0.45em; text-transform:uppercase; margin-bottom:3.5rem; }
+.lock-panel { background:var(--panel); border:1px solid var(--border); border-top:2px solid var(--blue-dim); padding:2.5rem 3rem; width:440px; max-width:95vw; position:relative; }
+.lock-panel::before { content:'[ SECURE TERMINAL — AUTHORIZED PERSONNEL ONLY ]'; position:absolute; top:-0.6rem; left:50%; transform:translateX(-50%); background:var(--panel); padding:0 1rem; font-size:0.55rem; color:var(--blue); letter-spacing:0.18em; white-space:nowrap; }
+.lock-label { font-size:0.6rem; color:var(--text-dim); letter-spacing:0.35em; text-transform:uppercase; margin-bottom:0.7rem; }
+.lock-input { width:100%; background:var(--bg); border:1px solid var(--border); border-bottom:2px solid var(--blue-dim); color:var(--blue); font-family:'Share Tech Mono',monospace; font-size:1rem; padding:0.75rem 1rem; outline:none; letter-spacing:0.1em; caret-color:var(--blue); transition:border-color 0.2s,box-shadow 0.2s; margin-bottom:1.4rem; }
+.lock-input:focus { border-color:var(--blue); box-shadow:0 2px 24px var(--blue-glow); }
+.lock-input.error { border-color:var(--red)!important; box-shadow:0 2px 20px var(--red-glow)!important; animation:shake 0.4s ease; }
+@keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-8px)} 40%{transform:translateX(8px)} 60%{transform:translateX(-5px)} 80%{transform:translateX(5px)} }
+.lock-err { font-size:0.62rem; color:var(--red); letter-spacing:0.2em; text-transform:uppercase; margin-top:-1rem; margin-bottom:1rem; min-height:1rem; text-align:center; }
+.lock-btn { width:100%; background:transparent; border:1px solid var(--blue-dim); color:var(--blue); font-family:'Share Tech Mono',monospace; font-size:0.78rem; letter-spacing:0.35em; text-transform:uppercase; padding:0.85rem; cursor:pointer; transition:all 0.2s; }
+.lock-btn:hover { background:var(--blue-glow); border-color:var(--blue); box-shadow:0 0 20px var(--blue-glow); }
+.lock-footer { margin-top:2rem; font-size:0.55rem; color:var(--text-muted); letter-spacing:0.2em; text-align:center; line-height:1.8; }
+
+/* MAIN SITE */
+#mainSite { display:none; min-height:100vh; flex-direction:column; }
+#mainSite.visible { display:flex; }
+
+/* TOPBAR */
+.topbar { background:var(--panel); border-bottom:1px solid var(--border); padding:0.9rem 2.5rem; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:100; }
+.topbar-logo { font-family:'Orbitron',sans-serif; font-size:1.2rem; font-weight:900; color:var(--blue); letter-spacing:0.3em; text-shadow:0 0 20px rgba(42,128,255,0.4); }
+.topbar-right { display:flex; align-items:center; gap:1.5rem; }
+.topbar-meta { font-size:0.58rem; color:var(--text-dim); letter-spacing:0.2em; text-align:right; line-height:1.6; }
+.topbar-meta span { color:var(--blue); }
+.admin-btn { background:transparent; border:1px solid var(--border2); color:var(--text-dim); font-family:'Share Tech Mono',monospace; font-size:0.62rem; letter-spacing:0.25em; padding:0.4rem 0.9rem; cursor:pointer; text-transform:uppercase; transition:all 0.2s; }
+.admin-btn:hover { border-color:var(--blue-dim); color:var(--blue); }
+.admin-btn.active { border-color:var(--blue); color:var(--blue); background:var(--blue-glow2); }
+.class-banner { background:linear-gradient(90deg,transparent,var(--blue-glow2),transparent); border-bottom:1px solid var(--border); padding:0.35rem; text-align:center; font-size:0.58rem; color:var(--blue-dim); letter-spacing:0.5em; text-transform:uppercase; }
+
+/* LAYOUT */
+.main-layout { display:flex; flex:1; }
+.sidebar { width:240px; min-width:240px; background:var(--panel); border-right:1px solid var(--border); padding:1.5rem 0; display:flex; flex-direction:column; }
+.sidebar-section-label { font-size:0.54rem; color:var(--text-muted); letter-spacing:0.4em; text-transform:uppercase; padding:0 1.5rem; margin-bottom:0.5rem; margin-top:1.2rem; }
+.sidebar-section-label:first-child { margin-top:0; }
+.sidebar-item { padding:0.6rem 1.5rem; font-size:0.68rem; color:var(--text-dim); letter-spacing:0.12em; cursor:pointer; border-left:2px solid transparent; transition:all 0.15s; user-select:none; display:flex; align-items:center; gap:0.5rem; }
+.sidebar-item:hover { color:var(--blue); background:var(--blue-glow2); border-left-color:var(--blue-dim); }
+.sidebar-item.active { color:var(--blue); background:var(--blue-glow2); border-left-color:var(--blue); }
+.sidebar-dot { width:5px; height:5px; border-radius:50%; background:var(--text-muted); flex-shrink:0; transition:background 0.15s; }
+.sidebar-item.active .sidebar-dot, .sidebar-item:hover .sidebar-dot { background:var(--blue); box-shadow:0 0 6px var(--blue); }
+
+/* CONTENT */
+.content-area { flex:1; padding:2.5rem 3rem; overflow-y:auto; }
+.page-header { margin-bottom:2.5rem; border-bottom:1px solid var(--border); padding-bottom:1.5rem; }
+.page-title { font-family:'Orbitron',sans-serif; font-size:1.4rem; font-weight:700; color:var(--blue); letter-spacing:0.2em; margin-bottom:0.4rem; }
+.page-desc { font-size:0.65rem; color:var(--text-dim); letter-spacing:0.15em; line-height:1.8; }
+
+/* STATS */
+.stats-row { display:flex; gap:2rem; margin-bottom:2rem; flex-wrap:wrap; }
+.stat-item { display:flex; flex-direction:column; gap:0.2rem; }
+.stat-val { font-family:'Orbitron',sans-serif; font-size:1.6rem; font-weight:700; color:var(--blue); }
+.stat-label { font-size:0.55rem; color:var(--text-muted); letter-spacing:0.3em; text-transform:uppercase; }
+
+/* DOC GRID */
+.doc-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:1px; background:var(--border); border:1px solid var(--border); }
+.doc-card { background:var(--bg2); padding:1.4rem 1.6rem; display:flex; flex-direction:column; gap:0.6rem; transition:background 0.15s; cursor:pointer; position:relative; overflow:hidden; }
+.doc-card::before { content:''; position:absolute; left:0; top:0; bottom:0; width:2px; background:var(--blue-dim); opacity:0; transition:opacity 0.2s; }
+.doc-card:hover { background:var(--bg3); }
+.doc-card:hover::before { opacity:1; }
+.doc-card.locked-card { cursor:default; }
+.doc-card.locked-card::before { background:var(--red); opacity:0.5; }
+.doc-id { font-size:0.58rem; color:var(--text-muted); letter-spacing:0.3em; }
+.doc-title { font-size:0.88rem; color:var(--text); letter-spacing:0.08em; line-height:1.4; }
+.doc-card:hover .doc-title { color:var(--blue); }
+.doc-meta-row { display:flex; align-items:center; gap:0.6rem; flex-wrap:wrap; margin-top:0.3rem; }
+.doc-tag { font-size:0.52rem; padding:0.18rem 0.45rem; border:1px solid var(--border2); color:var(--text-dim); letter-spacing:0.2em; text-transform:uppercase; }
+.doc-tag.classified { border-color:var(--red); color:var(--red); }
+.doc-tag.locked-tag { border-color:var(--yellow); color:var(--yellow); }
+.doc-tag.clearance { border-color:var(--blue-dim); color:var(--blue-dim); }
+.doc-link { font-size:0.6rem; color:var(--blue-dim); letter-spacing:0.15em; text-decoration:none; margin-top:auto; display:inline-block; transition:color 0.15s; word-break:break-all; }
+.doc-link:hover { color:var(--blue); }
+.doc-lock-icon { position:absolute; top:0.9rem; right:1rem; font-size:0.85rem; color:var(--yellow); opacity:0.7; }
+.cat-badge { display:inline-block; font-size:0.52rem; padding:0.15rem 0.5rem; letter-spacing:0.2em; text-transform:uppercase; border:1px solid; flex-shrink:0; }
+.cat-badge.weapons { border-color:#3a6aaa; color:#3a9aff; }
+.cat-badge.personnel { border-color:#3a7a4a; color:#3acc6a; }
+.cat-badge.legal { border-color:#8a6a20; color:#c8a030; }
+.cat-badge.incident { border-color:#8a2020; color:#cc4444; }
+.cat-badge.facility { border-color:#5a3a8a; color:#9a6aff; }
+.cat-badge.lore { border-color:#3a6a8a; color:#4aaccc; }
+.cat-badge.other { border-color:#444; color:#888; }
+.empty-state { text-align:center; padding:4rem 2rem; color:var(--text-muted); font-size:0.68rem; letter-spacing:0.2em; text-transform:uppercase; }
+
+/* OVERLAYS */
+.overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.75); z-index:500; align-items:center; justify-content:center; backdrop-filter:blur(4px); }
+.overlay.visible { display:flex; }
+.modal { background:var(--panel); border:1px solid var(--border2); border-top:2px solid var(--blue); width:640px; max-width:96vw; max-height:90vh; overflow-y:auto; padding:2rem; position:relative; }
+.modal.red-top { border-top-color:var(--red); }
+.modal-title { font-family:'Orbitron',sans-serif; font-size:1rem; font-weight:700; color:var(--blue); letter-spacing:0.25em; margin-bottom:0.3rem; }
+.modal-sub { font-size:0.6rem; color:var(--text-dim); letter-spacing:0.2em; margin-bottom:2rem; }
+.modal-close { position:absolute; top:1.2rem; right:1.5rem; background:none; border:none; color:var(--text-dim); font-size:1.1rem; cursor:pointer; font-family:'Share Tech Mono',monospace; transition:color 0.2s; }
+.modal-close:hover { color:var(--red); }
+.section-title { font-size:0.6rem; color:var(--blue-dim); letter-spacing:0.3em; text-transform:uppercase; margin-bottom:1rem; border-bottom:1px solid var(--border); padding-bottom:0.5rem; }
+.form-row { display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1rem; }
+.form-group { display:flex; flex-direction:column; gap:0.4rem; margin-bottom:1rem; }
+.form-label { font-size:0.58rem; color:var(--text-dim); letter-spacing:0.25em; text-transform:uppercase; }
+.form-input, .form-select, .form-textarea { background:var(--bg); border:1px solid var(--border2); color:var(--text); font-family:'Share Tech Mono',monospace; font-size:0.78rem; padding:0.6rem 0.8rem; outline:none; transition:border-color 0.2s; width:100%; }
+.form-input:focus, .form-select:focus, .form-textarea:focus { border-color:var(--blue-dim); box-shadow:0 0 12px var(--blue-glow2); }
+.form-select option { background:var(--bg3); }
+.form-textarea { resize:vertical; min-height:70px; }
+.form-check-row { display:flex; align-items:center; gap:0.7rem; margin-bottom:1rem; }
+.form-check { width:16px; height:16px; accent-color:var(--blue); cursor:pointer; }
+.form-check-label { font-size:0.65rem; color:var(--text-dim); letter-spacing:0.15em; cursor:pointer; }
+.form-actions { display:flex; gap:0.8rem; margin-top:1.5rem; }
+.btn { font-family:'Share Tech Mono',monospace; font-size:0.68rem; letter-spacing:0.25em; text-transform:uppercase; padding:0.65rem 1.4rem; border:1px solid; cursor:pointer; transition:all 0.2s; background:transparent; }
+.btn-primary { border-color:var(--blue); color:var(--blue); }
+.btn-primary:hover { background:var(--blue-glow); box-shadow:0 0 16px var(--blue-glow); }
+.btn-danger { border-color:var(--red); color:var(--red); }
+.btn-danger:hover { background:var(--red-glow); }
+.btn-ghost { border-color:var(--border2); color:var(--text-dim); }
+.btn-ghost:hover { border-color:var(--text-dim); color:var(--text); }
+.divider { border:none; border-top:1px solid var(--border); margin:1.5rem 0; }
+
+/* ADMIN DOC LIST */
+.admin-doc-list { display:flex; flex-direction:column; gap:1px; background:var(--border); border:1px solid var(--border); margin-bottom:1.5rem; }
+.admin-doc-row { background:var(--bg2); padding:0.85rem 1.2rem; display:flex; align-items:center; justify-content:space-between; gap:1rem; }
+.admin-doc-row:hover { background:var(--bg3); }
+.admin-doc-info { flex:1; min-width:0; }
+.admin-doc-name { font-size:0.72rem; color:var(--text); letter-spacing:0.08em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.admin-doc-id { font-size:0.55rem; color:var(--text-muted); letter-spacing:0.2em; margin-top:0.2rem; }
+.admin-doc-actions { display:flex; gap:0.5rem; flex-shrink:0; }
+.admin-icon-btn { background:none; border:1px solid var(--border2); color:var(--text-dim); font-family:'Share Tech Mono',monospace; font-size:0.58rem; letter-spacing:0.15em; padding:0.28rem 0.65rem; cursor:pointer; transition:all 0.15s; }
+.admin-icon-btn:hover { border-color:var(--blue-dim); color:var(--blue); }
+.admin-icon-btn.del:hover { border-color:var(--red); color:var(--red); }
+
+/* SECOND LOCK */
+.second-lock-warning { font-size:0.62rem; color:var(--red); letter-spacing:0.35em; text-transform:uppercase; margin-bottom:0.5rem; text-align:center; }
+.second-lock-title { font-family:'Orbitron',sans-serif; font-size:1rem; font-weight:700; color:var(--text); letter-spacing:0.15em; margin-bottom:0.8rem; text-align:center; }
+.second-lock-gcw { font-size:0.65rem; color:var(--yellow); letter-spacing:0.12em; line-height:1.7; margin-bottom:1.5rem; border:1px solid rgba(200,160,48,0.3); padding:0.8rem 1rem; background:rgba(200,160,48,0.04); }
+
+/* TOAST */
+#toast { position:fixed; bottom:2rem; left:50%; transform:translateX(-50%) translateY(100px); background:var(--panel); border:1px solid var(--blue-dim); color:var(--blue); font-size:0.65rem; letter-spacing:0.2em; text-transform:uppercase; padding:0.7rem 1.8rem; z-index:9999; transition:transform 0.3s ease; pointer-events:none; }
+#toast.show { transform:translateX(-50%) translateY(0); }
+#toast.error { border-color:var(--red); color:var(--red); }
+
+::-webkit-scrollbar { width:4px; }
+::-webkit-scrollbar-track { background:var(--bg); }
+::-webkit-scrollbar-thumb { background:var(--border2); }
+::-webkit-scrollbar-thumb:hover { background:var(--blue-dim); }
+</style>
+</head>
+<body>
+
+<!-- LOCK SCREEN -->
+<div id="lockScreen">
+  <div class="lock-logo">GAMMAGON</div>
+  <div class="lock-sub">Classified Archive Terminal — Restricted Access</div>
+  <div class="lock-panel">
+    <div class="lock-label">Enter Access Code</div>
+    <input class="lock-input" type="password" id="lockInput" placeholder="••••••••••••••••" autocomplete="off" />
+    <div class="lock-err" id="lockErr"></div>
+    <button class="lock-btn" onclick="tryUnlock()">[ AUTHENTICATE ]</button>
+  </div>
+  <div class="lock-footer">GAMMAGON CORPORATION — UNAUTHORIZED ACCESS IS A VIOLATION OF CORPORATE LAW SECT. 7 &amp; 12<br>ALL SESSIONS ARE MONITORED AND LOGGED</div>
+</div>
+
+<!-- MAIN SITE -->
+<div id="mainSite">
+  <div class="topbar">
+    <div class="topbar-logo">GAMMAGON</div>
+    <div class="topbar-right">
+      <div class="topbar-meta">AGENT: <span>42069</span> &nbsp;|&nbsp; CLEARANCE: <span>LVL 21 ²⁵¹⁷⁶</span><br>SESSION: <span id="sessionId"></span> &nbsp;|&nbsp; <span id="liveTime"></span></div>
+      <button class="admin-btn" id="adminToggleBtn" onclick="showAdminLogin()">⚙ ADMIN</button>
+    </div>
+  </div>
+  <div class="class-banner">TOP SECRET // GAMMAGON INTERNAL // UNAUTHORIZED REPRODUCTION PROHIBITED</div>
+  <div class="main-layout">
+    <div class="sidebar">
+      <div class="sidebar-section-label">Navigation</div>
+      <div class="sidebar-item active" onclick="setFilter('all',this)"><div class="sidebar-dot"></div>ALL DOCUMENTS</div>
+      <div class="sidebar-section-label">Categories</div>
+      <div class="sidebar-item" onclick="setFilter('weapons',this)"><div class="sidebar-dot"></div>WEAPONS &amp; PLATFORMS</div>
+      <div class="sidebar-item" onclick="setFilter('personnel',this)"><div class="sidebar-dot"></div>PERSONNEL</div>
+      <div class="sidebar-item" onclick="setFilter('legal',this)"><div class="sidebar-dot"></div>LEGAL &amp; CODEX</div>
+      <div class="sidebar-item" onclick="setFilter('incident',this)"><div class="sidebar-dot"></div>INCIDENT REPORTS</div>
+      <div class="sidebar-item" onclick="setFilter('facility',this)"><div class="sidebar-dot"></div>FACILITIES</div>
+      <div class="sidebar-item" onclick="setFilter('lore',this)"><div class="sidebar-dot"></div>LORE &amp; COMPENDIUMS</div>
+      <div class="sidebar-item" onclick="setFilter('other',this)"><div class="sidebar-dot"></div>OTHER</div>
+    </div>
+    <div class="content-area">
+      <div class="page-header">
+        <div class="page-title" id="pageTitle">ALL DOCUMENTS</div>
+        <div class="page-desc" id="pageDesc">Full classified archive — all documents accessible at current clearance level. Restricted files require secondary authentication.</div>
+      </div>
+      <div class="stats-row">
+        <div class="stat-item"><div class="stat-val" id="statTotal">0</div><div class="stat-label">Total Documents</div></div>
+        <div class="stat-item"><div class="stat-val" id="statVisible">0</div><div class="stat-label">In View</div></div>
+        <div class="stat-item"><div class="stat-val" id="statLocked">0</div><div class="stat-label">Restricted</div></div>
+      </div>
+      <div id="docGrid" class="doc-grid"></div>
+    </div>
+  </div>
+</div>
+
+<!-- SECOND LOCK OVERLAY -->
+<div id="secondLockOverlay" class="overlay">
+  <div class="modal red-top" style="width:420px">
+    <button class="modal-close" onclick="closeSecondLock()">✕</button>
+    <div class="second-lock-warning">⚠ RESTRICTED ACCESS ⚠</div>
+    <div class="second-lock-title" id="secondLockTitle">DOCUMENT LOCKED</div>
+    <div class="second-lock-gcw" id="secondLockGCW"></div>
+    <div class="lock-label">Secondary Clearance Code</div>
+    <input class="lock-input" type="password" id="secondLockInput" placeholder="••••••••" autocomplete="off" style="margin-bottom:0.5rem" />
+    <div class="lock-err" id="secondLockErr"></div>
+    <button class="lock-btn" onclick="trySecondUnlock()" style="margin-top:0.5rem">[ AUTHENTICATE ]</button>
+  </div>
+</div>
+
+<!-- ADMIN LOGIN OVERLAY -->
+<div id="adminLoginOverlay" class="overlay">
+  <div class="modal" style="width:380px; border-top-color:var(--blue-dim)">
+    <button class="modal-close" onclick="closeAdminLogin()">✕</button>
+    <div class="modal-title">ADMIN ACCESS</div>
+    <div class="modal-sub">Grand Regent Detective — Agent 42069</div>
+    <div class="lock-label">Admin Password</div>
+    <input class="lock-input" type="password" id="adminPwInput" placeholder="••••••••" autocomplete="off" />
+    <div class="lock-err" id="adminPwErr"></div>
+    <button class="lock-btn" onclick="tryAdminLogin()">[ ENTER ADMIN PANEL ]</button>
+  </div>
+</div>
+
+<!-- ADMIN PANEL OVERLAY -->
+<div id="adminOverlay" class="overlay">
+  <div class="modal">
+    <button class="modal-close" onclick="closeAdmin()">✕</button>
+    <div class="modal-title">ADMIN PANEL</div>
+    <div class="modal-sub">GRAND REGENT DETECTIVE — AGENT 42069 — ARCHIVE MANAGEMENT</div>
+
+    <div class="section-title">Add New Document</div>
+    <div class="form-row">
+      <div class="form-group"><div class="form-label">Document ID</div><input class="form-input" id="fDocId" placeholder="e.g. GWR-A7-002" /></div>
+      <div class="form-group"><div class="form-label">Category</div>
+        <select class="form-select" id="fCategory">
+          <option value="weapons">Weapons &amp; Platforms</option>
+          <option value="personnel">Personnel</option>
+          <option value="legal">Legal &amp; Codex</option>
+          <option value="incident">Incident Reports</option>
+          <option value="facility">Facilities</option>
+          <option value="lore">Lore &amp; Compendiums</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group"><div class="form-label">Document Title</div><input class="form-input" id="fTitle" placeholder="e.g. A7 Assault Rifle — Technical File" /></div>
+    <div class="form-group"><div class="form-label">Description</div><textarea class="form-textarea" id="fDesc" placeholder="Short summary of document contents..."></textarea></div>
+    <div class="form-group"><div class="form-label">Link / URL (optional)</div><input class="form-input" id="fLink" placeholder="https://..." /></div>
+    <div class="form-row">
+      <div class="form-group"><div class="form-label">Clearance Tag</div>
+        <select class="form-select" id="fClearance">
+          <option value="">None</option>
+          <option value="Clearance 5+">Clearance 5+</option>
+          <option value="Clearance 10+">Clearance 10+</option>
+          <option value="Clearance 15+">Clearance 15+</option>
+          <option value="Clearance 21">Clearance 21</option>
+          <option value="Council Only">Council Only</option>
+        </select>
+      </div>
+      <div class="form-group"><div class="form-label">Status Tag</div>
+        <select class="form-select" id="fStatus">
+          <option value="">Active</option>
+          <option value="CLASSIFIED">CLASSIFIED</option>
+          <option value="DOOMSDAY">DOOMSDAY</option>
+          <option value="ARCHIVED">ARCHIVED</option>
+          <option value="PENDING">PENDING</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-check-row">
+      <input type="checkbox" class="form-check" id="fLocked" />
+      <label class="form-check-label" for="fLocked">Require secondary code to access (restricted document)</label>
+    </div>
+    <div id="secondCodeGroup" style="display:none">
+      <div class="form-group"><div class="form-label">Secondary Access Code</div><input class="form-input" id="fSecondCode" placeholder="Secondary password for this document" /></div>
+      <div class="form-group"><div class="form-label">Graphic Content Warning (optional)</div><textarea class="form-textarea" id="fGCW" placeholder="Content warning message shown before the secondary code prompt..."></textarea></div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-primary" onclick="addDoc()">[ Add Document ]</button>
+      <button class="btn btn-ghost" onclick="clearForm()">[ Clear ]</button>
+    </div>
+
+    <hr class="divider">
+    <div class="section-title">Manage Existing Documents</div>
+    <div id="adminDocList" class="admin-doc-list"></div>
+
+    <!-- EDIT SECTION -->
+    <div id="editSection" style="display:none">
+      <hr class="divider">
+      <div class="section-title">Edit Document — <span id="editDocIdLabel" style="color:var(--text)"></span></div>
+      <div class="form-group"><div class="form-label">Title</div><input class="form-input" id="eTitle" /></div>
+      <div class="form-group"><div class="form-label">Description</div><textarea class="form-textarea" id="eDesc"></textarea></div>
+      <div class="form-group"><div class="form-label">Link / URL</div><input class="form-input" id="eLink" /></div>
+      <div class="form-row">
+        <div class="form-group"><div class="form-label">Category</div>
+          <select class="form-select" id="eCategory">
+            <option value="weapons">Weapons &amp; Platforms</option>
+            <option value="personnel">Personnel</option>
+            <option value="legal">Legal &amp; Codex</option>
+            <option value="incident">Incident Reports</option>
+            <option value="facility">Facilities</option>
+            <option value="lore">Lore &amp; Compendiums</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div class="form-group"><div class="form-label">Status Tag</div>
+          <select class="form-select" id="eStatus">
+            <option value="">Active</option>
+            <option value="CLASSIFIED">CLASSIFIED</option>
+            <option value="DOOMSDAY">DOOMSDAY</option>
+            <option value="ARCHIVED">ARCHIVED</option>
+            <option value="PENDING">PENDING</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group"><div class="form-label">Clearance Tag</div>
+        <select class="form-select" id="eClearance">
+          <option value="">None</option>
+          <option value="Clearance 5+">Clearance 5+</option>
+          <option value="Clearance 10+">Clearance 10+</option>
+          <option value="Clearance 15+">Clearance 15+</option>
+          <option value="Clearance 21">Clearance 21</option>
+          <option value="Council Only">Council Only</option>
+        </select>
+      </div>
+      <div class="form-check-row">
+        <input type="checkbox" class="form-check" id="eLocked" />
+        <label class="form-check-label" for="eLocked">Require secondary code</label>
+      </div>
+      <div id="editSecondCodeGroup" style="display:none">
+        <div class="form-group"><div class="form-label">New Secondary Code (leave blank to keep existing)</div><input class="form-input" id="eSecondCode" placeholder="New code (optional)" /></div>
+        <div class="form-group"><div class="form-label">Graphic Content Warning</div><textarea class="form-textarea" id="eGCW"></textarea></div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-primary" onclick="saveEdit()">[ Save Changes ]</button>
+        <button class="btn btn-ghost" onclick="cancelEdit()">[ Cancel ]</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// =============================================
+// CONFIG — change these passwords
+// =============================================
+const MAIN_CODE  = "NoChurchInTheWild";
+const ADMIN_CODE = "42069-REGENT-ADMIN";   // your private admin password
+const PLASTICORE_CODE = "PlastiCoreBlackSite";
+
+// =============================================
+// DEFAULT DOCUMENT DATA
+// =============================================
+const DEFAULT_DOCS = [
+  { id:"GWD-R2VE-001", title:"RAPTURE-2VE — Rotary Sustained-Fire Platform", desc:"VE rotary platform with unlimited ammunition via integrated Void Particle Reactor. Full technical specification and operational parameters.", category:"weapons", link:"", clearance:"Clearance 21", status:"CLASSIFIED", locked:false, secondCode:"", gcw:"" },
+  { id:"GWR-A7-002",   title:"A7 / A7-E Assault Rifle — Technical File",      desc:"Standard-issue A-series rifle documentation covering the A7 and A7-E variants.", category:"weapons", link:"", clearance:"Clearance 10+", status:"", locked:false, secondCode:"", gcw:"" },
+  { id:"GWR-A8-001",   title:"A8 Assault Rifle — Technical File",              desc:"A8 variant documentation. Extended barrel, updated VE compatibility. Cross-reference GWR-A7-002.", category:"weapons", link:"", clearance:"Clearance 10+", status:"", locked:false, secondCode:"", gcw:"" },
+  { id:"VPT-007",      title:"Void Particle Technology Manual — Rev. 7",       desc:"Updated VE terminology: Emissions, EPM, Circuited. Canonical reference for all VE-platform documentation.", category:"lore", link:"", clearance:"Clearance 15+", status:"CLASSIFIED", locked:false, secondCode:"", gcw:"" },
+  { id:"VKA-001",      title:"Void Memory Compendium",                         desc:"Master lore document. Five color-coded Void energy regions, Corporate Wars 1–6, three blacksites, the Council of Ten, and cosmological framework.", category:"lore", link:"", clearance:"Clearance 21", status:"CLASSIFIED", locked:false, secondCode:"", gcw:"" },
+  { id:"LEGAL-CODEX-001", title:"Legal Codex — Lord of Luck / Sympathy Law 108-4", desc:"Full legal framework surrounding the Lord of Luck. Sympathy Law 108-4, Section 210. Contact conversion protocols.", category:"legal", link:"", clearance:"Council Only", status:"CLASSIFIED", locked:false, secondCode:"", gcw:"" },
+  { id:"GAMMAGON-PD-CLEO7-001", title:"Personnel Dossier — SECBOT 128472 (fmr. CLEO-7)", desc:"Synthetic humanoid specs, nanite bloodstream, CrescendOS+, De Lisle Carbine, GVE-SG Glock 22. BONELAB residency record.", category:"personnel", link:"", clearance:"Clearance 21", status:"CLASSIFIED", locked:false, secondCode:"", gcw:"" },
+  { id:"TAF-001",      title:"Ascendant Frame — Classification Document",      desc:"Origin (Yichud/Dalgarian collaboration), capabilities (matter deconstruction, GVE Quasar blasts, Axiom Encoding). 8 functional, 1 damaged, 1 MIA in self-constructed pocket dimension.", category:"facility", link:"", clearance:"Clearance 21", status:"CLASSIFIED", locked:false, secondCode:"", gcw:"" },
+  { id:"VGO-PIR-001",  title:"Paraversal Incident Report — B-MUSTANG",        desc:"82/100 stabilizers failed. 30 Void Particle Reactors detonated. Civilian evacuation and mind-wipe. PlastiCore involvement confirmed (stolen warpdrive). B-CLEO command absorption.", category:"incident", link:"", clearance:"Clearance 21", status:"CLASSIFIED", locked:false, secondCode:"", gcw:"" },
+  { id:"GAMMAGON-FTB-MS-001", title:"Miracle Sweets — Field Tactical Brief",  desc:"Eight tactical candy variants plus the Grey Sweet and the 'Falling Anvil' combo move. Distribution restricted to active field operatives.", category:"other", link:"", clearance:"Clearance 10+", status:"", locked:false, secondCode:"", gcw:"" },
+  { id:"MLC-001",      title:"Miyagi Lore Compendium",                         desc:"Marcus Miyagi, the GOLDen Retriever™, VALE-1 terminal AI, and the blue fungal threat rising from deep cave systems.", category:"lore", link:"", clearance:"Clearance 15+", status:"CLASSIFIED", locked:false, secondCode:"", gcw:"" },
+  { id:"FAC-PLASTICORE-001", title:"PlastiCore Facility Dossier",              desc:"Restricted intelligence file on PlastiCore's primary facility. Layout, known personnel, warpdrive program, and ongoing hostilities.", category:"facility", link:"", clearance:"Council Only", status:"CLASSIFIED", locked:true, secondCode:PLASTICORE_CODE, gcw:"This document contains graphic descriptions of PlastiCore facility incidents, casualties, and classified wartime intelligence. Content may be disturbing. Viewer discretion is strongly advised." }
+];
+
+// =============================================
+// STATE
+// =============================================
+let docs = JSON.parse(localStorage.getItem('gammagon_docs') || 'null') || DEFAULT_DOCS.map(d=>({...d}));
+let currentFilter = "all";
+let editingDocId   = null;
+let pendingLockId  = null;
+let adminUnlocked  = false;
+
+function saveDocs() { try { localStorage.setItem('gammagon_docs', JSON.stringify(docs)); } catch(e){} }
+
+// =============================================
+// LOCK SCREEN
+// =============================================
+function tryUnlock() {
+  const val = document.getElementById('lockInput').value;
+  if (val === MAIN_CODE) {
+    document.getElementById('lockScreen').classList.add('hidden');
+    setTimeout(() => {
+      document.getElementById('lockScreen').style.display = 'none';
+      document.getElementById('mainSite').classList.add('visible');
+      renderDocs(); startClock();
+      document.getElementById('sessionId').textContent = Math.random().toString(36).substring(2,10).toUpperCase();
+    }, 600);
+  } else {
+    flashError('lockInput','lockErr','ACCESS DENIED — INVALID CREDENTIALS');
+  }
+}
+document.getElementById('lockInput').addEventListener('keydown', e => { if(e.key==='Enter') tryUnlock(); });
+
+// =============================================
+// CLOCK
+// =============================================
+function startClock() {
+  const tick = () => {
+    const n = new Date();
+    document.getElementById('liveTime').textContent =
+      n.toUTCString().split(' ').slice(1,5).join(' ') + ' UTC';
+  };
+  tick(); setInterval(tick,1000);
+}
+
+// =============================================
+// FILTER / RENDER
+// =============================================
+const TITLES = { all:'ALL DOCUMENTS', weapons:'WEAPONS & PLATFORMS', personnel:'PERSONNEL', legal:'LEGAL & CODEX', incident:'INCIDENT REPORTS', facility:'FACILITIES', lore:'LORE & COMPENDIUMS', other:'OTHER' };
+const DESCS  = { all:'Full classified archive — all documents accessible at current clearance level. Restricted files require secondary authentication.', weapons:'All weapons platforms, VE systems, and armament documentation.', personnel:'Agent dossiers, synthetic personnel records, and operative files.', legal:'Legal codexes, corporate law references, and regulatory frameworks.', incident:'Field incident reports, blacksite events, and crisis documentation.', facility:'Blacksite facility files, layout intel, and infrastructure records.', lore:'Void compendiums, lore archives, and cosmological documentation.', other:'Miscellaneous classified materials.' };
+
+function setFilter(cat, el) {
+  currentFilter = cat;
+  document.querySelectorAll('.sidebar-item').forEach(i=>i.classList.remove('active'));
+  if(el) el.classList.add('active');
+  document.getElementById('pageTitle').textContent = TITLES[cat] || cat.toUpperCase();
+  document.getElementById('pageDesc').textContent  = DESCS[cat] || '';
+  renderDocs();
+}
+
+function renderDocs() {
+  const filtered = currentFilter==='all' ? docs : docs.filter(d=>d.category===currentFilter);
+  document.getElementById('statTotal').textContent   = docs.length;
+  document.getElementById('statVisible').textContent = filtered.length;
+  document.getElementById('statLocked').textContent  = docs.filter(d=>d.locked).length;
+  const grid = document.getElementById('docGrid');
+  if(!filtered.length) { grid.innerHTML=`<div class="empty-state" style="grid-column:1/-1">No documents in this category.</div>`; return; }
+  grid.innerHTML = filtered.map(d=>`
+    <div class="doc-card ${d.locked?'locked-card':''}" onclick="${d.locked?`openSecondLock('${esc(d.id)}')`:d.link?`window.open('${esc(d.link)}','_blank')`:'void(0)'}">
+      ${d.locked?'<div class="doc-lock-icon">🔒</div>':''}
+      <div class="doc-id">${esc(d.id)}</div>
+      <div class="doc-title">${esc(d.title)}</div>
+      <div style="font-size:0.62rem;color:var(--text-dim);line-height:1.6;margin-top:0.2rem">${esc(d.desc)}</div>
+      <div class="doc-meta-row">
+        <span class="cat-badge ${d.category}">${d.category.toUpperCase()}</span>
+        ${d.status?`<span class="doc-tag classified">${esc(d.status)}</span>`:''}
+        ${d.clearance?`<span class="doc-tag clearance">${esc(d.clearance)}</span>`:''}
+        ${d.locked?`<span class="doc-tag locked-tag">RESTRICTED</span>`:''}
+      </div>
+      ${d.link&&!d.locked?`<a class="doc-link" href="${esc(d.link)}" target="_blank" onclick="event.stopPropagation()">${esc(d.link)}</a>`:''}
+    </div>`).join('');
+}
+
+// =============================================
+// SECOND LOCK
+// =============================================
+function openSecondLock(id) {
+  const doc = docs.find(d=>d.id===id); if(!doc) return;
+  pendingLockId = id;
+  document.getElementById('secondLockTitle').textContent = doc.title;
+  document.getElementById('secondLockGCW').textContent   = doc.gcw||'This document requires secondary clearance.';
+  document.getElementById('secondLockInput').value='';
+  document.getElementById('secondLockErr').textContent='';
+  document.getElementById('secondLockOverlay').classList.add('visible');
+  setTimeout(()=>document.getElementById('secondLockInput').focus(),100);
+}
+function closeSecondLock() { document.getElementById('secondLockOverlay').classList.remove('visible'); pendingLockId=null; }
+function trySecondUnlock() {
+  const doc = docs.find(d=>d.id===pendingLockId); if(!doc) return;
+  const val = document.getElementById('secondLockInput').value;
+  if(val===doc.secondCode) {
+    closeSecondLock();
+    if(doc.link) window.open(doc.link,'_blank');
+    else showToast('Document unlocked — no external link set.');
+  } else { flashError('secondLockInput','secondLockErr','INVALID SECONDARY CODE'); }
+}
+document.getElementById('secondLockInput').addEventListener('keydown',e=>{if(e.key==='Enter')trySecondUnlock();});
+
+// =============================================
+// ADMIN LOGIN
+// =============================================
+function showAdminLogin() {
+  if(adminUnlocked){openAdmin();return;}
+  document.getElementById('adminPwInput').value='';
+  document.getElementById('adminPwErr').textContent='';
+  document.getElementById('adminLoginOverlay').classList.add('visible');
+  setTimeout(()=>document.getElementById('adminPwInput').focus(),100);
+}
+function closeAdminLogin() { document.getElementById('adminLoginOverlay').classList.remove('visible'); }
+function tryAdminLogin() {
+  if(document.getElementById('adminPwInput').value===ADMIN_CODE){
+    adminUnlocked=true; closeAdminLogin(); openAdmin();
+    document.getElementById('adminToggleBtn').classList.add('active');
+  } else { flashError('adminPwInput','adminPwErr','ACCESS DENIED'); }
+}
+document.getElementById('adminPwInput').addEventListener('keydown',e=>{if(e.key==='Enter')tryAdminLogin();});
+
+// =============================================
+// ADMIN PANEL
+// =============================================
+function openAdmin() { document.getElementById('adminOverlay').classList.add('visible'); renderAdminList(); }
+function closeAdmin() { document.getElementById('adminOverlay').classList.remove('visible'); }
+
+function renderAdminList() {
+  const list = document.getElementById('adminDocList');
+  if(!docs.length){list.innerHTML='<div class="empty-state">No documents yet.</div>';return;}
+  list.innerHTML = docs.map(d=>`
+    <div class="admin-doc-row">
+      <div class="admin-doc-info">
+        <div class="admin-doc-name">${esc(d.title)}</div>
+        <div class="admin-doc-id">${esc(d.id)} · ${d.category.toUpperCase()}${d.locked?' · 🔒':''}</div>
+      </div>
+      <div class="admin-doc-actions">
+        <button class="admin-icon-btn" onclick="startEdit('${esc(d.id)}')">EDIT</button>
+        <button class="admin-icon-btn del" onclick="deleteDoc('${esc(d.id)}')">DELETE</button>
+      </div>
+    </div>`).join('');
+}
+
+// TOGGLE SECONDARY CODE FIELDS
+document.getElementById('fLocked').addEventListener('change',function(){ document.getElementById('secondCodeGroup').style.display=this.checked?'block':'none'; });
+document.getElementById('eLocked').addEventListener('change',function(){ document.getElementById('editSecondCodeGroup').style.display=this.checked?'block':'none'; });
+
+function addDoc() {
+  const id    = document.getElementById('fDocId').value.trim();
+  const title = document.getElementById('fTitle').value.trim();
+  if(!id||!title){showToast('ID and Title required.',true);return;}
+  if(docs.find(d=>d.id===id)){showToast('Document ID already exists.',true);return;}
+  const locked = document.getElementById('fLocked').checked;
+  const sc     = document.getElementById('fSecondCode').value.trim();
+  if(locked&&!sc){showToast('Secondary code required for restricted docs.',true);return;}
+  docs.push({
+    id, title,
+    desc:     document.getElementById('fDesc').value.trim(),
+    link:     document.getElementById('fLink').value.trim(),
+    category: document.getElementById('fCategory').value,
+    clearance:document.getElementById('fClearance').value,
+    status:   document.getElementById('fStatus').value,
+    locked, secondCode:sc,
+    gcw:      document.getElementById('fGCW').value.trim()
+  });
+  saveDocs(); renderDocs(); renderAdminList(); clearForm();
+  showToast('Document added: '+id);
+}
+
+function clearForm() {
+  ['fDocId','fTitle','fDesc','fLink','fSecondCode','fGCW'].forEach(i=>document.getElementById(i).value='');
+  document.getElementById('fCategory').value='weapons';
+  document.getElementById('fClearance').value='';
+  document.getElementById('fStatus').value='';
+  document.getElementById('fLocked').checked=false;
+  document.getElementById('secondCodeGroup').style.display='none';
+}
+
+function deleteDoc(id) {
+  if(!confirm(`Delete "${id}"? This cannot be undone.`))return;
+  docs=docs.filter(d=>d.id!==id);
+  saveDocs(); renderDocs(); renderAdminList();
+  showToast('Deleted: '+id);
+}
+
+function startEdit(id) {
+  const doc=docs.find(d=>d.id===id); if(!doc)return;
+  editingDocId=id;
+  document.getElementById('editDocIdLabel').textContent=id;
+  document.getElementById('eTitle').value=doc.title;
+  document.getElementById('eDesc').value=doc.desc;
+  document.getElementById('eLink').value=doc.link;
+  document.getElementById('eCategory').value=doc.category;
+  document.getElementById('eStatus').value=doc.status;
+  document.getElementById('eClearance').value=doc.clearance;
+  document.getElementById('eLocked').checked=doc.locked;
+  document.getElementById('eSecondCode').value='';
+  document.getElementById('eGCW').value=doc.gcw;
+  document.getElementById('editSecondCodeGroup').style.display=doc.locked?'block':'none';
+  document.getElementById('editSection').style.display='block';
+  document.getElementById('editSection').scrollIntoView({behavior:'smooth'});
+}
+
+function saveEdit() {
+  const doc=docs.find(d=>d.id===editingDocId); if(!doc)return;
+  doc.title    =document.getElementById('eTitle').value.trim();
+  doc.desc     =document.getElementById('eDesc').value.trim();
+  doc.link     =document.getElementById('eLink').value.trim();
+  doc.category =document.getElementById('eCategory').value;
+  doc.status   =document.getElementById('eStatus').value;
+  doc.clearance=document.getElementById('eClearance').value;
+  doc.locked   =document.getElementById('eLocked').checked;
+  const nc=document.getElementById('eSecondCode').value.trim();
+  if(nc) doc.secondCode=nc;
+  doc.gcw=document.getElementById('eGCW').value.trim();
+  cancelEdit(); saveDocs(); renderDocs(); renderAdminList();
+  showToast('Updated: '+doc.id);
+}
+
+function cancelEdit() { editingDocId=null; document.getElementById('editSection').style.display='none'; }
+
+// =============================================
+// UTILS
+// =============================================
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function flashError(inputId, errId, msg) {
+  const inp=document.getElementById(inputId);
+  const err=document.getElementById(errId);
+  inp.classList.add('error');
+  err.textContent=msg;
+  setTimeout(()=>{inp.classList.remove('error');err.textContent='';inp.value='';},2200);
+}
+
+let toastTimer;
+function showToast(msg, isError=false) {
+  const t=document.getElementById('toast');
+  t.textContent=msg;
+  t.className=isError?'error show':'show';
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>{t.className=isError?'error':'';},3000);
+}
+
+// Close overlays on outside click
+['secondLockOverlay','adminLoginOverlay','adminOverlay'].forEach(id=>{
+  document.getElementById(id).addEventListener('click',function(e){
+    if(e.target===this){
+      if(id==='secondLockOverlay') closeSecondLock();
+      else if(id==='adminLoginOverlay') closeAdminLogin();
+      else if(id==='adminOverlay') closeAdmin();
+    }
+  });
+});
+</script>
+</body>
+</html>
