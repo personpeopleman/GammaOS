@@ -485,7 +485,8 @@ async function handleFileUpload() {
       return;
     }
 
-    const sha = await getGitHubFileBlob(path);
+    let sha = null;
+try { sha = await getGitHubFileBlob(path); } catch(e) {}
     const response = await fetch(`https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${path}`, {
       method: 'PUT',
       headers: { 'Authorization': `token ${GITHUB_TOKEN}`, 'Content-Type': 'application/json' },
