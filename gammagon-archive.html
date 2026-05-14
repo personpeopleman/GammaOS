@@ -61,6 +61,10 @@ body::before { content:''; position:fixed; inset:0; background:repeating-linear-
 .admin-btn { background:transparent; border:1px solid var(--border2); color:var(--text-dim); font-family:'Share Tech Mono',monospace; font-size:0.62rem; letter-spacing:0.25em; padding:0.4rem 0.9rem; cursor:pointer; text-transform:uppercase; transition:all 0.2s; }
 .admin-btn:hover { border-color:var(--blue-dim); color:var(--blue); }
 .admin-btn.active { border-color:var(--blue); color:var(--blue); background:var(--blue-glow2); }
+.sync-status { font-size:0.52rem; color:var(--green); letter-spacing:0.2em; padding:0.3rem 0.7rem; border:1px solid var(--green); display:flex; align-items:center; gap:0.4rem; animation:pulse 2s infinite; }
+.sync-status.syncing { color:var(--yellow); border-color:var(--yellow); animation:none; }
+.sync-status.error { color:var(--red); border-color:var(--red); }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
 .class-banner { background:linear-gradient(90deg,transparent,var(--blue-glow2),transparent); border-bottom:1px solid var(--border); padding:0.35rem; text-align:center; font-size:0.58rem; color:var(--blue-dim); letter-spacing:0.5em; text-transform:uppercase; }
 
 /* LAYOUT */
@@ -162,6 +166,18 @@ body::before { content:''; position:fixed; inset:0; background:repeating-linear-
 .second-lock-title { font-family:'Orbitron',sans-serif; font-size:1rem; font-weight:700; color:var(--text); letter-spacing:0.15em; margin-bottom:0.8rem; text-align:center; }
 .second-lock-gcw { font-size:0.65rem; color:var(--yellow); letter-spacing:0.12em; line-height:1.7; margin-bottom:1.5rem; border:1px solid rgba(200,160,48,0.3); padding:0.8rem 1rem; background:rgba(200,160,48,0.04); }
 
+/* FILE VIEWER */
+#fileViewer { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.95); z-index:600; flex-direction:column; }
+#fileViewer.visible { display:flex; }
+.file-viewer-header { background:var(--panel); border-bottom:1px solid var(--border); padding:1rem 1.5rem; display:flex; justify-content:space-between; align-items:center; }
+.file-viewer-title { font-size:0.85rem; color:var(--blue); letter-spacing:0.15em; }
+.file-viewer-close { background:none; border:none; color:var(--text-dim); font-size:1.3rem; cursor:pointer; transition:color 0.2s; }
+.file-viewer-close:hover { color:var(--red); }
+.file-viewer-content { flex:1; overflow:auto; padding:2rem; display:flex; align-items:center; justify-content:center; }
+.file-viewer-image { max-width:100%; max-height:100%; object-fit:contain; }
+.file-viewer-text { color:var(--text); font-family:'Share Tech Mono',monospace; font-size:0.75rem; line-height:1.6; white-space:pre-wrap; word-wrap:break-word; background:var(--bg); padding:1.5rem; border:1px solid var(--border); max-width:100%; }
+.file-viewer-pdf { width:100%; height:100%; }
+
 /* TOAST */
 #toast { position:fixed; bottom:2rem; left:50%; transform:translateX(-50%) translateY(100px); background:var(--panel); border:1px solid var(--blue-dim); color:var(--blue); font-size:0.65rem; letter-spacing:0.2em; text-transform:uppercase; padding:0.7rem 1.8rem; z-index:9999; transition:transform 0.3s ease; pointer-events:none; }
 #toast.show { transform:translateX(-50%) translateY(0); }
@@ -194,6 +210,7 @@ body::before { content:''; position:fixed; inset:0; background:repeating-linear-
     <div class="topbar-logo">GAMMAGON</div>
     <div class="topbar-right">
       <div class="topbar-meta">AGENT: <span>42069</span> &nbsp;|&nbsp; CLEARANCE: <span>LVL 21 ²⁵¹⁷⁶</span><br>SESSION: <span id="sessionId"></span> &nbsp;|&nbsp; <span id="liveTime"></span></div>
+      <div class="sync-status" id="syncStatus">✓ SYNCED</div>
       <button class="admin-btn" id="adminToggleBtn" onclick="showAdminLogin()">⚙ ADMIN</button>
     </div>
   </div>
@@ -224,6 +241,15 @@ body::before { content:''; position:fixed; inset:0; background:repeating-linear-
       <div id="docGrid" class="doc-grid"></div>
     </div>
   </div>
+</div>
+
+<!-- FILE VIEWER -->
+<div id="fileViewer">
+  <div class="file-viewer-header">
+    <div class="file-viewer-title" id="fileViewerTitle">Document Viewer</div>
+    <button class="file-viewer-close" onclick="closeFileViewer()">✕</button>
+  </div>
+  <div class="file-viewer-content" id="fileViewerContent"></div>
 </div>
 
 <!-- SECOND LOCK OVERLAY -->
@@ -277,7 +303,7 @@ body::before { content:''; position:fixed; inset:0; background:repeating-linear-
     </div>
     <div class="form-group"><div class="form-label">Document Title</div><input class="form-input" id="fTitle" placeholder="e.g. A7 Assault Rifle — Technical File" /></div>
     <div class="form-group"><div class="form-label">Description</div><textarea class="form-textarea" id="fDesc" placeholder="Short summary of document contents..."></textarea></div>
-    <div class="form-group"><div class="form-label">Link / URL (optional)</div><input class="form-input" id="fLink" placeholder="https://..." /></div>
+    <div class="form-group"><div class="form-label">GitHub File Path (optional)</div><input class="form-input" id="fGitPath" placeholder="e.g. docs/file.pdf or docs/file.txt" /></div>
     <div class="form-row">
       <div class="form-group"><div class="form-label">Clearance Tag</div>
         <select class="form-select" id="fClearance">
@@ -322,7 +348,7 @@ body::before { content:''; position:fixed; inset:0; background:repeating-linear-
       <div class="section-title">Edit Document — <span id="editDocIdLabel" style="color:var(--text)"></span></div>
       <div class="form-group"><div class="form-label">Title</div><input class="form-input" id="eTitle" /></div>
       <div class="form-group"><div class="form-label">Description</div><textarea class="form-textarea" id="eDesc"></textarea></div>
-      <div class="form-group"><div class="form-label">Link / URL</div><input class="form-input" id="eLink" /></div>
+      <div class="form-group"><div class="form-label">GitHub File Path</div><input class="form-input" id="eGitPath" placeholder="e.g. docs/file.pdf" /></div>
       <div class="form-row">
         <div class="form-group"><div class="form-label">Category</div>
           <select class="form-select" id="eCategory">
@@ -375,40 +401,136 @@ body::before { content:''; position:fixed; inset:0; background:repeating-linear-
 
 <script>
 // =============================================
-// CONFIG — change these passwords
+// CONFIG
 // =============================================
 const MAIN_CODE  = "NoChurchInTheWild";
-const ADMIN_CODE = "42069-REGENT-ADMIN";   // your private admin password
+const ADMIN_CODE = "42069-REGENT-ADMIN";
 const PLASTICORE_CODE = "PlastiCoreBlackSite";
+const GITHUB_TOKEN = "YOUR_GITHUB_TOKEN_HERE";
+const GITHUB_OWNER = "personpeopleman";
+const GITHUB_REPO = "GammaOS";
+const GITHUB_BRANCH = "main";
+const DATA_FILE_PATH = "gammagon-data.json";
 
 // =============================================
 // DEFAULT DOCUMENT DATA
 // =============================================
 const DEFAULT_DOCS = [
-  { id:"GWD-R2VE-001", title:"RAPTURE-2VE — Rotary Sustained-Fire Platform", desc:"VE rotary platform with unlimited ammunition via integrated Void Particle Reactor. Full technical specification and operational parameters.", category:"weapons", link:"", clearance:"Clearance 21", status:"CLASSIFIED", locked:false, secondCode:"", gcw:"" },
-  { id:"GWR-A7-002",   title:"A7 / A7-E Assault Rifle — Technical File",      desc:"Standard-issue A-series rifle documentation covering the A7 and A7-E variants.", category:"weapons", link:"", clearance:"Clearance 10+", status:"", locked:false, secondCode:"", gcw:"" },
-  { id:"GWR-A8-001",   title:"A8 Assault Rifle — Technical File",              desc:"A8 variant documentation. Extended barrel, updated VE compatibility. Cross-reference GWR-A7-002.", category:"weapons", link:"", clearance:"Clearance 10+", status:"", locked:false, secondCode:"", gcw:"" },
-  { id:"VPT-007",      title:"Void Particle Technology Manual — Rev. 7",       desc:"Updated VE terminology: Emissions, EPM, Circuited. Canonical reference for all VE-platform documentation.", category:"lore", link:"", clearance:"Clearance 15+", status:"CLASSIFIED", locked:false, secondCode:"", gcw:"" },
-  { id:"VKA-001",      title:"Void Memory Compendium",                         desc:"Master lore document. Five color-coded Void energy regions, Corporate Wars 1–6, three blacksites, the Council of Ten, and cosmological framework.", category:"lore", link:"", clearance:"Clearance 21", status:"CLASSIFIED", locked:false, secondCode:"", gcw:"" },
-  { id:"LEGAL-CODEX-001", title:"Legal Codex — Lord of Luck / Sympathy Law 108-4", desc:"Full legal framework surrounding the Lord of Luck. Sympathy Law 108-4, Section 210. Contact conversion protocols.", category:"legal", link:"", clearance:"Council Only", status:"CLASSIFIED", locked:false, secondCode:"", gcw:"" },
-  { id:"GAMMAGON-PD-CLEO7-001", title:"Personnel Dossier — SECBOT 128472 (fmr. CLEO-7)", desc:"Synthetic humanoid specs, nanite bloodstream, CrescendOS+, De Lisle Carbine, GVE-SG Glock 22. BONELAB residency record.", category:"personnel", link:"", clearance:"Clearance 21", status:"CLASSIFIED", locked:false, secondCode:"", gcw:"" },
-  { id:"TAF-001",      title:"Ascendant Frame — Classification Document",      desc:"Origin (Yichud/Dalgarian collaboration), capabilities (matter deconstruction, GVE Quasar blasts, Axiom Encoding). 8 functional, 1 damaged, 1 MIA in self-constructed pocket dimension.", category:"facility", link:"", clearance:"Clearance 21", status:"CLASSIFIED", locked:false, secondCode:"", gcw:"" },
-  { id:"VGO-PIR-001",  title:"Paraversal Incident Report — B-MUSTANG",        desc:"82/100 stabilizers failed. 30 Void Particle Reactors detonated. Civilian evacuation and mind-wipe. PlastiCore involvement confirmed (stolen warpdrive). B-CLEO command absorption.", category:"incident", link:"", clearance:"Clearance 21", status:"CLASSIFIED", locked:false, secondCode:"", gcw:"" },
-  { id:"GAMMAGON-FTB-MS-001", title:"Miracle Sweets — Field Tactical Brief",  desc:"Eight tactical candy variants plus the Grey Sweet and the 'Falling Anvil' combo move. Distribution restricted to active field operatives.", category:"other", link:"", clearance:"Clearance 10+", status:"", locked:false, secondCode:"", gcw:"" },
-  { id:"MLC-001",      title:"Miyagi Lore Compendium",                         desc:"Marcus Miyagi, the GOLDen Retriever™, VALE-1 terminal AI, and the blue fungal threat rising from deep cave systems.", category:"lore", link:"", clearance:"Clearance 15+", status:"CLASSIFIED", locked:false, secondCode:"", gcw:"" },
-  { id:"FAC-PLASTICORE-001", title:"PlastiCore Facility Dossier",              desc:"Restricted intelligence file on PlastiCore's primary facility. Layout, known personnel, warpdrive program, and ongoing hostilities.", category:"facility", link:"", clearance:"Council Only", status:"CLASSIFIED", locked:true, secondCode:PLASTICORE_CODE, gcw:"This document contains graphic descriptions of PlastiCore facility incidents, casualties, and classified wartime intelligence. Content may be disturbing. Viewer discretion is strongly advised." }
+  { id:"GWD-R2VE-001", title:"RAPTURE-2VE — Rotary Sustained-Fire Platform", desc:"VE rotary platform with unlimited ammunition via integrated Void Particle Reactor. Full technical specification and operational parameters.", category:"weapons", gitPath:"", clearance:"Clearance 21", status:"CLASSIFIED", locked:false, secondCode:"", gcw:"" },
+  { id:"GWR-A7-002",   title:"A7 / A7-E Assault Rifle — Technical File",      desc:"Standard-issue A-series rifle documentation covering the A7 and A7-E variants.", category:"weapons", gitPath:"", clearance:"Clearance 10+", status:"", locked:false, secondCode:"", gcw:"" },
+  { id:"GWR-A8-001",   title:"A8 Assault Rifle — Technical File",              desc:"A8 variant documentation. Extended barrel, updated VE compatibility. Cross-reference GWR-A7-002.", category:"weapons", gitPath:"", clearance:"Clearance 10+", status:"", locked:false, secondCode:"", gcw:"" },
+  { id:"VPT-007",      title:"Void Particle Technology Manual — Rev. 7",       desc:"Updated VE terminology: Emissions, EPM, Circuited. Canonical reference for all VE-platform documentation.", category:"lore", gitPath:"", clearance:"Clearance 15+", status:"CLASSIFIED", locked:false, secondCode:"", gcw:"" },
+  { id:"VKA-001",      title:"Void Memory Compendium",                         desc:"Master lore document. Five color-coded Void energy regions, Corporate Wars 1–6, three blacksites, the Council of Ten, and cosmological framework.", category:"lore", gitPath:"", clearance:"Clearance 21", status:"CLASSIFIED", locked:false, secondCode:"", gcw:"" },
+  { id:"LEGAL-CODEX-001", title:"Legal Codex — Lord of Luck / Sympathy Law 108-4", desc:"Full legal framework surrounding the Lord of Luck. Sympathy Law 108-4, Section 210. Contact conversion protocols.", category:"legal", gitPath:"", clearance:"Council Only", status:"CLASSIFIED", locked:false, secondCode:"", gcw:"" },
+  { id:"GAMMAGON-PD-CLEO7-001", title:"Personnel Dossier — SECBOT 128472 (fmr. CLEO-7)", desc:"Synthetic humanoid specs, nanite bloodstream, CrescendOS+, De Lisle Carbine, GVE-SG Glock 22. BONELAB residency record.", category:"personnel", gitPath:"", clearance:"Clearance 21", status:"CLASSIFIED", locked:false, secondCode:"", gcw:"" },
+  { id:"TAF-001",      title:"Ascendant Frame — Classification Document",      desc:"Origin (Yichud/Dalgarian collaboration), capabilities (matter deconstruction, GVE Quasar blasts, Axiom Encoding). 8 functional, 1 damaged, 1 MIA in self-constructed pocket dimension.", category:"facility", gitPath:"", clearance:"Clearance 21", status:"CLASSIFIED", locked:false, secondCode:"", gcw:"" },
+  { id:"VGO-PIR-001",  title:"Paraversal Incident Report — B-MUSTANG",        desc:"82/100 stabilizers failed. 30 Void Particle Reactors detonated. Civilian evacuation and mind-wipe. PlastiCore involvement confirmed (stolen warpdrive). B-CLEO command absorption.", category:"incident", gitPath:"", clearance:"Clearance 21", status:"CLASSIFIED", locked:false, secondCode:"", gcw:"" },
+  { id:"GAMMAGON-FTB-MS-001", title:"Miracle Sweets — Field Tactical Brief",  desc:"Eight tactical candy variants plus the Grey Sweet and the 'Falling Anvil' combo move. Distribution restricted to active field operatives.", category:"other", gitPath:"", clearance:"Clearance 10+", status:"", locked:false, secondCode:"", gcw:"" },
+  { id:"MLC-001",      title:"Miyagi Lore Compendium",                         desc:"Marcus Miyagi, the GOLDen Retriever™, VALE-1 terminal AI, and the blue fungal threat rising from deep cave systems.", category:"lore", gitPath:"", clearance:"Clearance 15+", status:"CLASSIFIED", locked:false, secondCode:"", gcw:"" },
+  { id:"FAC-PLASTICORE-001", title:"PlastiCore Facility Dossier",              desc:"Restricted intelligence file on PlastiCore's primary facility. Layout, known personnel, warpdrive program, and ongoing hostilities.", category:"facility", gitPath:"", clearance:"Council Only", status:"CLASSIFIED", locked:true, secondCode:PLASTICORE_CODE, gcw:"This document contains graphic descriptions of PlastiCore facility incidents, casualties, and classified wartime intelligence. Content may be disturbing. Viewer discretion is strongly advised." }
 ];
 
 // =============================================
 // STATE
 // =============================================
-let docs = JSON.parse(localStorage.getItem('gammagon_docs') || 'null') || DEFAULT_DOCS.map(d=>({...d}));
+let docs = [];
 let currentFilter = "all";
 let editingDocId   = null;
 let pendingLockId  = null;
 let adminUnlocked  = false;
 
-function saveDocs() { try { localStorage.setItem('gammagon_docs', JSON.stringify(docs)); } catch(e){} }
+// =============================================
+// GITHUB API FUNCTIONS
+// =============================================
+async function getGitHubFile(path) {
+  try {
+    const response = await fetch(`https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${path}?ref=${GITHUB_BRANCH}`, {
+      headers: { 'Authorization': `token ${GITHUB_TOKEN}`, 'Accept': 'application/vnd.github.v3+raw' }
+    });
+    if (!response.ok) return null;
+    return await response.text();
+  } catch (e) { return null; }
+}
+
+async function getGitHubFileBlob(path) {
+  try {
+    const response = await fetch(`https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${path}?ref=${GITHUB_BRANCH}`, {
+      headers: { 'Authorization': `token ${GITHUB_TOKEN}` }
+    });
+    if (!response.ok) return null;
+    const data = await response.json();
+    return data.sha;
+  } catch (e) { return null; }
+}
+
+async function pushToGitHub(path, content, message) {
+  if (GITHUB_TOKEN === "YOUR_GITHUB_TOKEN_HERE") {
+    showToast('Token not configured. Changes saved locally.', true);
+    return false;
+  }
+  
+  updateSyncStatus('syncing');
+  try {
+    const sha = await getGitHubFileBlob(path);
+    const encodedContent = btoa(unescape(encodeURIComponent(content)));
+    
+    const response = await fetch(`https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${path}`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `token ${GITHUB_TOKEN}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        message: message,
+        content: encodedContent,
+        branch: GITHUB_BRANCH,
+        ...(sha && { sha })
+      })
+    });
+    
+    if (response.ok) {
+      updateSyncStatus('synced');
+      return true;
+    } else {
+      updateSyncStatus('error');
+      return false;
+    }
+  } catch (e) {
+    updateSyncStatus('error');
+    return false;
+  }
+}
+
+function updateSyncStatus(status) {
+  const el = document.getElementById('syncStatus');
+  if (status === 'synced') {
+    el.textContent = '✓ SYNCED';
+    el.className = 'sync-status';
+  } else if (status === 'syncing') {
+    el.textContent = '⟳ SYNCING...';
+    el.className = 'sync-status syncing';
+  } else if (status === 'error') {
+    el.textContent = '✕ SYNC ERROR';
+    el.className = 'sync-status error';
+    setTimeout(() => updateSyncStatus('synced'), 3000);
+  }
+}
+
+// =============================================
+// LOCAL STORAGE
+// =============================================
+function saveDocs() { 
+  try { localStorage.setItem('gammagon_docs', JSON.stringify(docs)); } catch(e){}
+}
+
+function loadDocs() {
+  const stored = localStorage.getItem('gammagon_docs');
+  if (stored) {
+    try { docs = JSON.parse(stored); return; } catch (e) {}
+  }
+  docs = DEFAULT_DOCS.map(d=>({...d}));
+  saveDocs();
+}
 
 // =============================================
 // LOCK SCREEN
@@ -464,7 +586,7 @@ function renderDocs() {
   const grid = document.getElementById('docGrid');
   if(!filtered.length) { grid.innerHTML=`<div class="empty-state" style="grid-column:1/-1">No documents in this category.</div>`; return; }
   grid.innerHTML = filtered.map(d=>`
-    <div class="doc-card ${d.locked?'locked-card':''}" onclick="${d.locked?`openSecondLock('${esc(d.id)}')`:d.link?`window.open('${esc(d.link)}','_blank')`:'void(0)'}">
+    <div class="doc-card ${d.locked?'locked-card':''}" onclick="${d.locked?`openSecondLock('${esc(d.id)}')`:d.gitPath?`openFileViewer('${esc(d.gitPath)}','${esc(d.title)}')`:'void(0)'}">
       ${d.locked?'<div class="doc-lock-icon">🔒</div>':''}
       <div class="doc-id">${esc(d.id)}</div>
       <div class="doc-title">${esc(d.title)}</div>
@@ -475,8 +597,37 @@ function renderDocs() {
         ${d.clearance?`<span class="doc-tag clearance">${esc(d.clearance)}</span>`:''}
         ${d.locked?`<span class="doc-tag locked-tag">RESTRICTED</span>`:''}
       </div>
-      ${d.link&&!d.locked?`<a class="doc-link" href="${esc(d.link)}" target="_blank" onclick="event.stopPropagation()">${esc(d.link)}</a>`:''}
     </div>`).join('');
+}
+
+// =============================================
+// FILE VIEWER
+// =============================================
+async function openFileViewer(gitPath, title) {
+  document.getElementById('fileViewerTitle').textContent = title;
+  const content = document.getElementById('fileViewerContent');
+  content.innerHTML = '<div style="color:var(--text-dim)">Loading document...</div>';
+  document.getElementById('fileViewer').classList.add('visible');
+  
+  const fileContent = await getGitHubFile(gitPath);
+  if (!fileContent) {
+    content.innerHTML = '<div style="color:var(--red)">Failed to load document.</div>';
+    return;
+  }
+  
+  const ext = gitPath.toLowerCase().split('.').pop();
+  
+  if (['jpg','jpeg','png','gif','webp'].includes(ext)) {
+    content.innerHTML = `<img src="https://raw.githubusercontent.com/${GITHUB_OWNER}/${GITHUB_REPO}/${GITHUB_BRANCH}/${gitPath}" class="file-viewer-image" />`;
+  } else if (ext === 'pdf') {
+    content.innerHTML = `<iframe src="https://raw.githubusercontent.com/${GITHUB_OWNER}/${GITHUB_REPO}/${GITHUB_BRANCH}/${gitPath}" class="file-viewer-pdf"></iframe>`;
+  } else {
+    content.innerHTML = `<pre class="file-viewer-text">${esc(fileContent)}</pre>`;
+  }
+}
+
+function closeFileViewer() {
+  document.getElementById('fileViewer').classList.remove('visible');
 }
 
 // =============================================
@@ -498,8 +649,8 @@ function trySecondUnlock() {
   const val = document.getElementById('secondLockInput').value;
   if(val===doc.secondCode) {
     closeSecondLock();
-    if(doc.link) window.open(doc.link,'_blank');
-    else showToast('Document unlocked — no external link set.');
+    if(doc.gitPath) openFileViewer(doc.gitPath, doc.title);
+    else showToast('Document unlocked — no file set.');
   } else { flashError('secondLockInput','secondLockErr','INVALID SECONDARY CODE'); }
 }
 document.getElementById('secondLockInput').addEventListener('keydown',e=>{if(e.key==='Enter')trySecondUnlock();});
@@ -549,7 +700,7 @@ function renderAdminList() {
 document.getElementById('fLocked').addEventListener('change',function(){ document.getElementById('secondCodeGroup').style.display=this.checked?'block':'none'; });
 document.getElementById('eLocked').addEventListener('change',function(){ document.getElementById('editSecondCodeGroup').style.display=this.checked?'block':'none'; });
 
-function addDoc() {
+async function addDoc() {
   const id    = document.getElementById('fDocId').value.trim();
   const title = document.getElementById('fTitle').value.trim();
   if(!id||!title){showToast('ID and Title required.',true);return;}
@@ -560,19 +711,21 @@ function addDoc() {
   docs.push({
     id, title,
     desc:     document.getElementById('fDesc').value.trim(),
-    link:     document.getElementById('fLink').value.trim(),
+    gitPath:  document.getElementById('fGitPath').value.trim(),
     category: document.getElementById('fCategory').value,
     clearance:document.getElementById('fClearance').value,
     status:   document.getElementById('fStatus').value,
     locked, secondCode:sc,
     gcw:      document.getElementById('fGCW').value.trim()
   });
-  saveDocs(); renderDocs(); renderAdminList(); clearForm();
+  saveDocs();
+  await pushToGitHub(DATA_FILE_PATH, JSON.stringify(docs, null, 2), `Add document: ${id}`);
+  renderDocs(); renderAdminList(); clearForm();
   showToast('Document added: '+id);
 }
 
 function clearForm() {
-  ['fDocId','fTitle','fDesc','fLink','fSecondCode','fGCW'].forEach(i=>document.getElementById(i).value='');
+  ['fDocId','fTitle','fDesc','fGitPath','fSecondCode','fGCW'].forEach(i=>document.getElementById(i).value='');
   document.getElementById('fCategory').value='weapons';
   document.getElementById('fClearance').value='';
   document.getElementById('fStatus').value='';
@@ -580,10 +733,12 @@ function clearForm() {
   document.getElementById('secondCodeGroup').style.display='none';
 }
 
-function deleteDoc(id) {
+async function deleteDoc(id) {
   if(!confirm(`Delete "${id}"? This cannot be undone.`))return;
   docs=docs.filter(d=>d.id!==id);
-  saveDocs(); renderDocs(); renderAdminList();
+  saveDocs();
+  await pushToGitHub(DATA_FILE_PATH, JSON.stringify(docs, null, 2), `Delete document: ${id}`);
+  renderDocs(); renderAdminList();
   showToast('Deleted: '+id);
 }
 
@@ -593,7 +748,7 @@ function startEdit(id) {
   document.getElementById('editDocIdLabel').textContent=id;
   document.getElementById('eTitle').value=doc.title;
   document.getElementById('eDesc').value=doc.desc;
-  document.getElementById('eLink').value=doc.link;
+  document.getElementById('eGitPath').value=doc.gitPath;
   document.getElementById('eCategory').value=doc.category;
   document.getElementById('eStatus').value=doc.status;
   document.getElementById('eClearance').value=doc.clearance;
@@ -605,11 +760,11 @@ function startEdit(id) {
   document.getElementById('editSection').scrollIntoView({behavior:'smooth'});
 }
 
-function saveEdit() {
+async function saveEdit() {
   const doc=docs.find(d=>d.id===editingDocId); if(!doc)return;
   doc.title    =document.getElementById('eTitle').value.trim();
   doc.desc     =document.getElementById('eDesc').value.trim();
-  doc.link     =document.getElementById('eLink').value.trim();
+  doc.gitPath  =document.getElementById('eGitPath').value.trim();
   doc.category =document.getElementById('eCategory').value;
   doc.status   =document.getElementById('eStatus').value;
   doc.clearance=document.getElementById('eClearance').value;
@@ -617,7 +772,9 @@ function saveEdit() {
   const nc=document.getElementById('eSecondCode').value.trim();
   if(nc) doc.secondCode=nc;
   doc.gcw=document.getElementById('eGCW').value.trim();
-  cancelEdit(); saveDocs(); renderDocs(); renderAdminList();
+  cancelEdit(); saveDocs();
+  await pushToGitHub(DATA_FILE_PATH, JSON.stringify(docs, null, 2), `Update document: ${doc.id}`);
+  renderDocs(); renderAdminList();
   showToast('Updated: '+doc.id);
 }
 
@@ -655,6 +812,11 @@ function showToast(msg, isError=false) {
     }
   });
 });
+
+// =============================================
+// INIT
+// =============================================
+loadDocs();
 </script>
 </body>
 </html>
